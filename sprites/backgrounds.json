@@ -1,0 +1,5 @@
+{
+	"aiz_knuckles_foreground": { "File": "overlay.bmp", "Rect": "0,0,384,256" },
+	"aiz_knuckles_chunk_overlay": { "File": "overlay.bmp", "Rect": "384,0,128,256" },
+	"aiz_knuckles_background": { "File": "background.bmp" }
+}

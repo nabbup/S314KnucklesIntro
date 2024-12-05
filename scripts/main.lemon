@@ -1,0 +1,284 @@
+function bool disableKnucklesAIZIntro()
+{
+#if DAGE_running
+	return true
+#endif
+	if (global.characters > 3) // only would be true if a character is after Knuckles (and the partner Tails combo), possible with a certain kind of slot
+		return true
+	return u8[0xffffe654] != 0 // this would only be true with ESCU, unsure about the currently unreleased ECC
+}
+
+//# address-hook(0x0067ee) end(0x0069b6)
+function void fn0067ee()
+{
+	base.fn0067ee()
+	if (u32[0xffffb172] == 0x063446 && global.zone_act == 0x0000 && isMainCharacter(CHARACTER_KNUCKLES) && !disableKnucklesAIZIntro())
+	{
+		System.loadExternalRawData("aiz_knuckles_intro_chunks", 0x03ABC40 + 0x1150)
+		fn01c2b0()
+	}
+}
+
+//# address-hook(0x01be46) end(0x01bfae)
+function void SetupCharacterAtStartPosition()
+{
+	base.SetupCharacterAtStartPosition()
+	if (D1.u16 == 0x1768 && D0.u16 == 0x0090 && isMainCharacter(CHARACTER_KNUCKLES) && !disableKnucklesAIZIntro())
+	{
+		camera.position.x.u16 = knuxAIZ.getCameraEndPos()
+		camera.position.y.u16 = 0x0390
+	}
+}
+
+function s16 knuxAIZ.getInitCameraPos()
+{
+	return 0x1160 - getScreenExtend()
+}
+
+function s16 knuxAIZ.getCameraEndPos()
+{
+	return max(0x1308 - getScreenExtend(), 0x12e0)
+}
+
+//# address-hook(0x0639c8) end(0x063a10)
+function void fn0639c8()
+{
+	base.fn0639c8()
+	if (global.zone_act != 0x0000 || disableKnucklesAIZIntro())
+		return
+	objA0.position.x.u16 = 0x1270 // giving eggrobo a specific position helps fix a few things
+	objA0.position.y.u16 = camera.position.y.u16 - 0x60
+}
+
+//# address-hook(0x04f906) end(0x04f90e)
+function void InitLevelTiles.AIZ1()
+{
+	base.InitLevelTiles.AIZ1()
+	knucklesIntroJunk()
+}
+
+//# post-update-hook
+function void PostFrameUpdate()
+{
+	base.PostFrameUpdate()
+	knucklesIntroBackgroundPalette()
+}
+
+function void knucklesIntroBackgroundPalette()
+{
+	if (global.zone_act == 0x0000 && isMainCharacter(CHARACTER_KNUCKLES) && camera.position.x.u16 < knuxAIZ.getCameraEndPos() && !disableKnucklesAIZIntro())
+	{
+		u16[0xfffffc80 + 0x5e] = u16[0x0a8b1c + 0x3e] // used for the overlay
+		for (u8 i = 0; i < 0x10; ++i) // used for the background
+			u16[0x8020c0 + 0x180 + i * 2] = u16[0x0a8b1c + i * 2]
+	}
+}
+
+function void knucklesIntroJunk()
+{
+	if (disableKnucklesAIZIntro())
+		return
+	if (global.zone_act == 0x0000 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		if (camera.position.x.u16 < knuxAIZ.getCameraEndPos())
+		{
+			AIZ1.ChangeBackgroundForKnuckles()
+			fillPlaneA_Default(camera.position.x.u16, camera.position.y.u16, getScreenWidth(), getScreenHeight())
+			move_area.bottom.current = 0x0390
+			move_area.bottom.target = 0x0390
+			
+			move_area.left = knuxAIZ.getInitCameraPos()
+			move_area.left.target = knuxAIZ.getInitCameraPos()
+			
+			level.vertical_wrap = 0x390
+			s16 pos = abs(-(camera.position.x.u16 / 2)) + 0x800
+			Renderer.drawCustomSprite("aiz_knuckles_background", pos, camera.position.y.u16, 0x00, 0x20, 0x1000)
+		}
+		else
+		{
+			for (u32 i = 0; i < 7; ++i)
+				u16[0xffff80ac + i * 0x61] = 0x64
+		}
+		Renderer.drawCustomSprite("aiz_knuckles_foreground", 0x1100, 0x0380, 0x00, 0x20, 0x9f80)
+		Renderer.drawCustomSprite("aiz_knuckles_chunk_overlay", 0x1280, 0x0380, 0x00, 0x20, 0x8000)
+	}
+	if (!global.level_started && global.zone_act == 0x0000 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		u8[0xffff8351] = 0
+		u8[0xffff8352] = 0
+		u8[0xffff8353] = 0
+		u8[0xffff8354] = 0
+		
+		u8[0xffff83b2] = 0xfe
+		u8[0xffff83b3] = 0xfd
+		u8[0xffff83b4] = 0xfa
+		u8[0xffff83b5] = 0xfb
+		Level.GetCameraPosition()
+		Level.InitialTilesFill()
+	}
+}
+
+//# address-hook(0x04f912) end(0x04fa0a)
+function void UpdateLevelTiles.AIZ1()
+{
+	knucklesIntroJunk()
+	base.UpdateLevelTiles.AIZ1()
+}
+
+//# address-hook(0x0634ca) end(0x063524)
+function void fn0634ca()
+{
+	if (global.zone_act != 0x0000 || disableKnucklesAIZIntro())
+	{
+		base.fn0634ca()
+		return
+	}
+	
+	move_area.left = 0
+	move_area.left.target = 0
+	
+	u16[0xffffb000 + 0x10] = u16[0x1e3cd8] - 0x200
+	u16[0xffffb000 + 0x14] = u16[0x1e3cd8+2]
+	
+	if (SetupObjectAttributesSlotted(0x0663de))
+		return
+
+	objA0.countdown_value = 0xef
+	u8[0xffffb000 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+
+	Game.startSkippableCutscene()
+
+	objA0.position.x.u16 = 0x11d0
+	objA0.position.y.u16 = 0x0435
+
+	camera.position.x.u16 = knuxAIZ.getInitCameraPos()
+	camera.position.y.u16 = 0x0390
+	
+	player1.camera_lock = 0xff
+	global.random.seed = global.framecounter
+	global.level_started = 0
+
+	if (allocDynamicObjectStd())
+	{
+		// Spawn check for cutscene skip
+		objA1.update_address = 0x063682		
+	}
+
+	// "spawnSimpleChildObjects(0x066656)" replaced by:
+	spawnSimpleChildObjects(0x063694, 8)		// Spawn the 8 critters
+
+	copyMemory(0xfffffca0, 0x066a32, 0x20)
+	loadCharacterPalette(CHARACTER_KNUCKLES, 0x802000 + 0x80, 0)
+}
+
+//# address-hook(0x06364e) end(0x06367c)
+function void fn06364e()
+{
+	if (global.zone_act != 0x0000 || disableKnucklesAIZIntro())
+	{
+		base.fn06364e()
+		return
+	}
+	checkpoint.number = 1
+	checkpoint.x = 0x13a0
+	checkpoint.y = 0x041a
+	checkpoint.camera.x = 0x1308
+	checkpoint.camera.y = 0x0390
+	Checkpoint.SaveCurrentState()
+	checkpoint.time = 0
+
+	Game.endSkippableCutscene()
+
+	// Use this code for a direct start without fade to black (along with the "pointToReach" change above)
+	bool manualCutsceneSkip = ((control.pad1.pressed & CONTROL_START) || (control.pad2.pressed & CONTROL_START))
+	if (!manualCutsceneSkip)
+	{
+		u32 backupA0 = A0
+
+		u16[0xffffb000 + 0x10] = objA0.position.x.u16
+		u16[0xffffb000 + 0x14] = objA0.position.y.u16
+		s16[0xffffb000 + 0x18] = objA0.velocity.x
+		s16[0xffffb000 + 0x1c] = objA0.velocity.x
+		u8[0xffffb000 + 0x2e] = 0
+
+		// Give Knuckles another update, to make sure he's rendered this frame at all
+		A0 = 0xffffb000
+		call objA0.update_address
+		A0 = backupA0
+
+		// Remove the critters, and the object that listens to CONTROL_START
+		for (u32 address = 0xffffb128; address < 0xffffcfcb; address += 0x4a)
+		{
+			A1 = address
+			if (objA1.update_address == 0x063720 || objA1.update_address == 0x063750 || objA1.update_address == 0x063682)
+			{
+				unloadObjectAt(A1)
+			}
+		}
+
+		// Load palette line 1 for enemies
+		copyMemory(0xfffffc20, 0x0a8b7c, 0x20)
+
+		player1.control_override = 0
+		player1.camera_lock = 0
+		fn0851e4()
+
+		if (allocDynamicObjectStd())
+		{
+			// Show title card
+			objA1.update_address = addressof(TitleCard.Update)
+		}
+
+		global.level_started = -0x6f	// Let HUD fly in
+		hud.dirty.timer = 0x80
+		timer.alldata = 0
+		hud.dirty.lives = 0x01
+
+		Object.TriggerUnloading()
+
+		// Spawn Tails
+		if (getNumPlayers() > 1)
+		{
+			tails.respawn_counter = 60
+			tails.ai_routine = 0x02
+		}
+	}
+	else
+	{
+		level.restart = 1
+		Object.TriggerUnloading()
+	}
+}
+
+//# address-hook(0x063a46) end(0x063a64)
+function void fn063a46()
+{
+	if (global.zone_act == 0x0000 && objA0.position.x.u16 > camera.position.x.u16 + getScreenWidth() + 32 && !disableKnucklesAIZIntro())
+	{
+		UnloadObject()
+		return
+	}
+	base.fn063a46()
+}
+
+//# address-hook(0x091712) end(0x091734)
+function void fn091712()
+{
+	if (global.zone_act == 0x0000 && objA0.position.x.u16 > camera.position.x.u16 + getScreenWidth() + 32 && !disableKnucklesAIZIntro())
+	{
+		UnloadObject()
+		return
+	}
+	base.fn091712()
+}
+
+//# address-hook(0x0916cc) end(0x0916e8)
+function void fn0916cc()
+{
+	if (global.zone_act == 0x0000 && objA0.position.x.u16 > camera.position.x.u16 + getScreenWidth() + 32 && !disableKnucklesAIZIntro())
+	{
+		UnloadObject()
+		return
+	}
+	base.fn0916cc()
+}

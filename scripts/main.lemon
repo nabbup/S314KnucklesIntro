@@ -194,8 +194,7 @@ function void fn06364e()
 	if (!manualCutsceneSkip)
 	{
 		u32 backupA0 = A0
-
-		u16[0xffffb000 + 0x10] = objA0.position.x.u16
+		u16[0xffffb000 + 0x10] = objA0.position.x.u16-4
 		u16[0xffffb000 + 0x14] = objA0.position.y.u16
 		s16[0xffffb000 + 0x18] = objA0.velocity.x
 		s16[0xffffb000 + 0x1c] = objA0.velocity.x
@@ -204,6 +203,9 @@ function void fn06364e()
 		// Give Knuckles another update, to make sure he's rendered this frame at all
 		A0 = 0xffffb000
 		call objA0.update_address
+		// changing the sprite to what he would likely have been on before getting to this point.
+		objA0.animation.sprite = 1
+		objA0.animation.frame = 2
 		A0 = backupA0
 
 		// Remove the critters, and the object that listens to CONTROL_START
@@ -234,7 +236,7 @@ function void fn06364e()
 		timer.alldata = 0
 		hud.dirty.lives = 0x01
 
-		Object.TriggerUnloading()
+		UnloadObject()
 
 		// Spawn Tails
 		if (getNumPlayers() > 1)
